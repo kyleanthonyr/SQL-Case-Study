@@ -131,11 +131,66 @@ QUESTIONS:
 The output of facility name and total revenue, sorted by revenue. Remember
 that there's a different cost for guests and members! */
 
+query_ten = """
+    SELECT subq.name, SUM( subq.revenue ) AS revenue
+    FROM (
+    SELECT b.facid, b.memid, f.name, f.guestcost, f.membercost, COUNT( b.facid ) AS facid_count,
+    CASE
+    WHEN b.memid =0
+    THEN COUNT( b.facid ) * f.guestcost
+    ELSE COUNT( b.facid ) * f.membercost
+    END AS 'revenue'
+    FROM Bookings AS b
+    LEFT JOIN Facilities AS f ON b.facid = f.facid
+    GROUP BY b.facid, b.memid
+    ) AS subq
+    GROUP BY subq.facid
+    HAVING revenue <=1000
+    ORDER BY revenue DESC;
+"""
+cursor.execute(query_ten)
+total_revenue_data = cursor.fetchall()
+total_revenue_data
+
 /* Q11: Produce a report of members and who recommended them in alphabetic surname,firstname order */
+query_eleven = """
+    SELECT r.recommendedby AS recommender_ID, (r.surname || " " || r.firstname) AS recommender, m.memid AS recommended_ID, (m.surname || " " || m.firstname) AS recommended
+    FROM MEMBERS AS m
+    LEFT JOIN MEMBERS AS r
+    ON m.recommendedby = r.memid
+    WHERE m.recommendedby != 0
+    ORDER BY recommender;
+"""
+cursor.execute(query_eleven)
+cursor.fetchall()
 
 
 /* Q12: Find the facilities with their usage by member, but not guests */
 
+query_twelve = """
+    SELECT b.facid, COUNT( b.memid ) AS mem_usage, f.name
+    FROM (
+    SELECT facid, memid
+    FROM Bookings
+    WHERE memid !=0
+    ) AS b
+    LEFT JOIN Facilities AS f ON b.facid = f.facid
+    GROUP BY b.facid;
+"""
+cursor.execute(query_twelve)
+cursor.fetchall()
+
 
 /* Q13: Find the facilities usage by month, but not guests */
+query_thirteen = """
+    SELECT b.months, COUNT( b.memid ) AS mem_usage
+    FROM (
+    SELECT strftime('%m',starttime) AS months, memid
+    FROM Bookings
+    WHERE memid !=0
+    ) AS b
+    GROUP BY b.months;
+"""
+cursor.execute(query_thirteen)
+cursor.fetchall()
 
